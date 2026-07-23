@@ -1,17 +1,23 @@
-import fs from "fs";
-import { execSync } from "child_process";
+import Anthropic from "@anthropic-ai/sdk";
 
-export async function runClaude(prompt) {
+const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY
+});
 
-    fs.writeFileSync("claude-input.md", prompt);
+export async function reviewWithClaude(prompt) {
 
-    const output = execSync(
-        "claude --print < claude-input.md",
-        {
-            encoding: "utf8",
-            maxBuffer: 20 * 1024 * 1024
-        }
-    );
+    const response = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 8000,
+        temperature: 0,
 
-    return output;
+        messages: [
+            {
+                role: "user",
+                content: prompt
+            }
+        ]
+    });
+
+    return response.content[0].text;
 }

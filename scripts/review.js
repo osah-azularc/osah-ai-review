@@ -3,7 +3,7 @@ import path from "path";
 
 import { getChangedFiles, getGitDiff } from "./collectDiff.js";
 import { postReview } from "./postComment.js";
-import { runClaude } from "./claude.js";
+import { reviewWithClaude } from "./claude.js";
 
 /**
  * Reads a prompt file.
@@ -110,7 +110,11 @@ ${gitDiff}
             await reviewWithClaude(finalPrompt);
   */
 
- const markdownReview = await runClaude(finalPrompt);
+console.log("🤖 Sending prompt to Claude...");
+
+const markdownReview = await reviewWithClaude(finalPrompt);
+
+console.log("✅ Claude Review Complete.");
 
   await postReview(markdownReview);
 
