@@ -1,0 +1,23 @@
+{
+  "name": "osah-ai-review",
+  "version": "1.0.0",
+  "description": "Reusable GitHub Action for AI-powered PR reviews using Claude",
+  "author": "Gurjyot D",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "review": "node scripts/review.js",
+    "diff": "node scripts/collectDiff.js",
+    "comment": "node scripts/postComment.js"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@octokit/rest": "^22.0.1",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "eslint": "^10.7.0"
+  }
+}
