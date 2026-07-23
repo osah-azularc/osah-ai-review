@@ -19,19 +19,20 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  - uses: actions/checkout@v4
-    with:
-      fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-  - uses: actions/setup-node@v4
-    with:
-      node-version: 22
+      - name: Install Dependencies
+        run: npm ci
 
-  - name: Install Dependencies
-    run: npm ci
-
-  - name: Run AI Review
-    run: npm run review
-    env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Run AI Review
+        run: npm run review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
