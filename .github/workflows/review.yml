@@ -35,4 +35,6 @@ jobs:
       - name: Run AI Review
         run: npm run review
         env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
