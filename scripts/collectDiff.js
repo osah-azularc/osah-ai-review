@@ -86,3 +86,29 @@ export function getGitDiff(
         repoPath
     );
 }
+
+export function getReviewContext(repoPath) {
+
+    return {
+
+        changedFiles,
+
+        gitDiff,
+
+        addedLines,
+
+        deletedLines,
+
+        commitMessages,
+
+        author,
+
+        branch,
+
+        baseBranch,
+
+        totalFiles
+
+    };
+
+}
