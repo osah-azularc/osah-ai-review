@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { getChangedFiles, getGitDiff } from "./collectDiff.js";
+import { getReviewContext } from "./collectDiff.js";
 import { postReview } from "./postComment.js";
 import { reviewWithClaude } from "./claude.js";
 
@@ -43,18 +43,19 @@ async function main() {
 
     console.log("✅ Prompt files loaded.");
 
-    //---------------------------------------------------
-    // Git Information
-    //---------------------------------------------------
+   //---------------------------------------------------
+// Git Information
+//---------------------------------------------------
 
-    console.log("\n📂 Collecting Git Information...");
+console.log("\n📂 Collecting Git Information...");
 
-    const changedFiles = getChangedFiles(TARGET_REPO);
+const reviewContext = getReviewContext(TARGET_REPO);
 
-    const gitDiff = getGitDiff(TARGET_REPO);
-
-    console.log(`✅ Changed Files : ${changedFiles.length}`);
-
+console.log(`✅ Changed Files : ${reviewContext.changedFiles.length}`);
+console.log(`✅ Branch : ${reviewContext.branch}`);
+console.log(`✅ Author : ${reviewContext.author}`);
+console.log(`✅ Commits : ${reviewContext.commitMessages.length}`);
+   
     //---------------------------------------------------
     // Build Prompt
     //---------------------------------------------------
@@ -84,16 +85,43 @@ ${security}
 ${output}
 
 ----------------------------------------------------
+# REPOSITORY INFORMATION
+
+Repository: ${reviewContext.repository}
+
+Author: ${reviewContext.author}
+
+Branch: ${reviewContext.branch}
+
+Base Branch: ${reviewContext.baseBranch}
+
+----------------------------------------------------
+
+# COMMIT MESSAGES
+
+${reviewContext.commitMessages.join("\n")}
+
+----------------------------------------------------
 
 # CHANGED FILES
 
-${changedFiles.join("\n")}
+${reviewContext.changedFiles.join("\n")}
+
+----------------------------------------------------
+
+# SUMMARY
+
+Files Changed : ${reviewContext.totalFiles}
+
+Lines Added : ${reviewContext.insertions}
+
+Lines Deleted : ${reviewContext.deletions}
 
 ----------------------------------------------------
 
 # GIT DIFF
 
-${gitDiff}
+${reviewContext.gitDiff}
 
 `;
 
