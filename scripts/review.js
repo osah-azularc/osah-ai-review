@@ -5,168 +5,161 @@ import { getChangedFiles, getGitDiff } from "./collectDiff.js";
 import { postReview } from "./postComment.js";
 import { reviewWithClaude } from "./claude.js";
 
+const TARGET_REPO = process.env.TARGET_REPO || "../target";
+
 /**
  * Reads a prompt file.
  */
 function loadPrompt(fileName) {
-  const filePath = path.join(
-    process.cwd(),
-    ".github",
-    "prompts",
-    fileName
-  );
+    const filePath = path.join(
+        process.cwd(),
+        "prompts",
+        fileName
+    );
 
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Prompt file not found: ${fileName}`);
-  }
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Prompt file not found: ${fileName}`);
+    }
 
-  return fs.readFileSync(filePath, "utf8");
+    return fs.readFileSync(filePath, "utf8");
 }
 
 async function main() {
-  console.log("======================================");
-  console.log("🚀 OSAH AI Review Started");
-  console.log("======================================");
 
-  //---------------------------------------------------
-  // Load Prompt Files
-  //---------------------------------------------------
+    console.log("======================================");
+    console.log("🚀 OSAH AI Review Started");
+    console.log("======================================");
 
-  console.log("\n📄 Loading Prompt Files...");
+    //---------------------------------------------------
+    // Load Prompt Files
+    //---------------------------------------------------
 
-  const reviewPrompt = loadPrompt("review.md");
-  const checklist = loadPrompt("checklist.md");
-  const security = loadPrompt("security.md");
-  const output = loadPrompt("output.md");
+    console.log("\n📄 Loading Prompt Files...");
 
-  console.log("✅ Prompt files loaded.");
+    const reviewPrompt = loadPrompt("review.md");
+    const checklist = loadPrompt("checklist.md");
+    const security = loadPrompt("security.md");
+    const output = loadPrompt("output.md");
 
-  //---------------------------------------------------
-  // Collect Git Information
-  //---------------------------------------------------
+    console.log("✅ Prompt files loaded.");
 
-  const changedFiles = getChangedFiles();
+    //---------------------------------------------------
+    // Git Information
+    //---------------------------------------------------
 
-  const gitDiff = getGitDiff();
+    console.log("\n📂 Collecting Git Information...");
 
-  console.log(`✅ Changed Files : ${changedFiles.length}`);
+    const changedFiles = getChangedFiles(TARGET_REPO);
 
-  //---------------------------------------------------
-  // Build Final Prompt
-  //---------------------------------------------------
+    const gitDiff = getGitDiff(TARGET_REPO);
 
-  const finalPrompt = `
+    console.log(`✅ Changed Files : ${changedFiles.length}`);
+
+    //---------------------------------------------------
+    // Build Prompt
+    //---------------------------------------------------
+
+    const finalPrompt = `
+
 # REVIEW PROMPT
 
 ${reviewPrompt}
 
--------------------------------------------------------
+----------------------------------------------------
 
 # CHECKLIST
 
 ${checklist}
 
--------------------------------------------------------
+----------------------------------------------------
 
 # SECURITY
 
 ${security}
 
--------------------------------------------------------
+----------------------------------------------------
 
 # EXPECTED OUTPUT
 
 ${output}
 
--------------------------------------------------------
+----------------------------------------------------
 
 # CHANGED FILES
 
 ${changedFiles.join("\n")}
 
--------------------------------------------------------
+----------------------------------------------------
 
 # GIT DIFF
 
 ${gitDiff}
+
 `;
 
-  //---------------------------------------------------
-  // Save Prompt (Debugging)
-  //---------------------------------------------------
+    //---------------------------------------------------
+    // Save Prompt
+    //---------------------------------------------------
 
-  fs.writeFileSync("claude-input.md", finalPrompt);
+    fs.writeFileSync("claude-input.md", finalPrompt);
 
-  console.log("✅ claude-input.md generated.");
+    console.log("✅ claude-input.md generated.");
 
-  //---------------------------------------------------
-  // TODO : Claude API Call
-  //---------------------------------------------------
+    //---------------------------------------------------
+    // Claude
+    //---------------------------------------------------
 
-  /*
-      Later we'll replace this with
+    console.log("\n🤖 Sending Prompt to Claude...");
 
-      const markdownReview =
-            await reviewWithClaude(finalPrompt);
-  */
+    const markdownReview = await reviewWithClaude(finalPrompt);
 
-console.log("🤖 Sending prompt to Claude...");
+    console.log("✅ Claude Review Complete.");
 
-const markdownReview = await reviewWithClaude(finalPrompt);
+    fs.writeFileSync("review-output.md", markdownReview);
 
-console.log("✅ Claude Review Complete.");
+    //---------------------------------------------------
+    // GitHub Context
+    //---------------------------------------------------
 
-  await postReview(markdownReview);
+    const githubToken = process.env.GITHUB_TOKEN;
 
-  //---------------------------------------------------
-  // Post Review
-  //---------------------------------------------------
+    if (!process.env.GITHUB_EVENT_PATH) {
+        console.log("Running locally.");
+        console.log("Review saved to review-output.md");
+        return;
+    }
 
-  /*
-      In GitHub Actions these values
-      come from GitHub Context.
-  */
+    const event = JSON.parse(
+        fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")
+    );
 
-const event = JSON.parse(
-    fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")
-);
+    const owner = event.repository.owner.login;
+    const repo = event.repository.name;
+    const pullNumber = event.pull_request.number;
 
-const owner = event.repository.owner.login;
+    //---------------------------------------------------
+    // Post Comment
+    //---------------------------------------------------
 
-const repo = event.repository.name;
+    console.log("💬 Posting review to GitHub...");
 
-const pullNumber = event.pull_request.number;
-  const githubToken = process.env.GITHUB_TOKEN;
-//Sconst anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (
-    owner &&
-    repo &&
-    pullNumber &&
-    githubToken
-  ) {
     await postReview({
-      githubToken,
-      owner,
-      repo,
-      pullNumber,
-      body: markdownReview,
+        githubToken,
+        owner,
+        repo,
+        pullNumber,
+        body: markdownReview,
     });
-  } else {
-    console.log(
-      "\n⚠ GitHub environment not found."
-    );
-    console.log(
-      "Skipping PR Comment."
-    );
-  }
 
-  console.log("\n======================================");
-  console.log("🎉 Review Complete");
-  console.log("======================================");
+    console.log("✅ Review posted.");
+
+    console.log("\n======================================");
+    console.log("🎉 Review Complete");
+    console.log("======================================");
+
 }
 
 main().catch((err) => {
-  console.error(err);
-  process.exit(1);
+    console.error(err);
+    process.exit(1);
 });
-
