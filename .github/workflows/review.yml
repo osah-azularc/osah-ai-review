@@ -13,28 +13,57 @@ permissions:
 
 jobs:
   ai-review:
+
     runs-on: ubuntu-latest
 
-    env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
     steps:
-      - name: Checkout Repository
+
+      #########################################################
+      # Checkout the repository that triggered the workflow
+      #########################################################
+
+      - name: Checkout Target Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: target
 
-      - name: Setup Node.js
+      #########################################################
+      # Checkout AI Review repository
+      #########################################################
+
+      - name: Checkout AI Review Repository
+        uses: actions/checkout@v4
+        with:
+          repository: osah-azularc/osah-ai-review
+          token: ${{ github.token }}
+          path: ai-review
+
+      #########################################################
+      # Node
+      #########################################################
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Install Dependencies
-        run: npm ci
+      #########################################################
+      # Install AI Review dependencies
+      #########################################################
+
+      - name: Install AI Review Dependencies
+        working-directory: ai-review
+        run: npm install
+
+      #########################################################
+      # Run Review
+      #########################################################
 
       - name: Run AI Review
+        working-directory: ai-review
         run: npm run review
         env:
+          TARGET_REPO: ../target
           GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
