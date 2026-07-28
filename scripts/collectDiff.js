@@ -1,44 +1,88 @@
 import { execSync } from "child_process";
 
 /**
- * Executes a shell command and returns its output.
+ * Executes a shell command inside the target repository.
+ *
  * @param {string} command
+ * @param {string} repoPath
  * @returns {string}
  */
-function execute(command) {
-  try {
-    return execSync(command, {
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch (err) {
-    console.warn(`Command failed: ${command}`);
-    return "";
-  }
+function execute(command, repoPath) {
+    try {
+        return execSync(command, {
+            cwd: repoPath,
+            encoding: "utf8",
+            stdio: ["pipe", "pipe", "pipe"],
+        }).trim();
+    } catch (err) {
+        console.warn(`⚠ Command failed: ${command}`);
+        console.warn(err.message);
+        return "";
+    }
 }
 
 /**
- * Returns changed file names.
+ * Ensure the latest dev branch is available.
  */
-export function getChangedFiles(baseBranch = "origin/dev") {
-  console.log("📄 Collecting changed files...");
+function fetchBaseBranch(repoPath, baseBranch) {
+    try {
+        console.log(`🔄 Fetching ${baseBranch}...`);
 
-  const output = execute(
-    `git diff --name-only ${baseBranch}...HEAD`
-  );
+        const branch = baseBranch.replace("origin/", "");
 
-  return output
-    .split("\n")
-    .filter(Boolean);
+        execSync(
+            `git fetch origin ${branch}`,
+            {
+                cwd: repoPath,
+                stdio: "inherit",
+            }
+        );
+    } catch (err) {
+        console.warn(`⚠ Unable to fetch ${baseBranch}`);
+    }
 }
 
 /**
- * Returns complete git diff.
+ * Returns list of changed files.
+ *
+ * @param {string} repoPath
+ * @param {string} baseBranch
  */
-export function getGitDiff(baseBranch = "origin/dev") {
-  console.log("📄 Collecting git diff...");
+export function getChangedFiles(
+    repoPath,
+    baseBranch = "origin/dev"
+) {
+    console.log("📄 Collecting Changed Files...");
 
-  return execute(
-    `git diff ${baseBranch}...HEAD`
-  );
+    fetchBaseBranch(repoPath, baseBranch);
+
+    const output = execute(
+        `git diff --name-only ${baseBranch}...HEAD`,
+        repoPath
+    );
+
+    return output
+        .split("\n")
+        .map(file => file.trim())
+        .filter(Boolean);
+}
+
+/**
+ * Returns full git diff.
+ *
+ * @param {string} repoPath
+ * @param {string} baseBranch
+ */
+export function getGitDiff(
+    repoPath,
+    baseBranch = "origin/dev"
+) {
+    console.log("📄 Collecting Git Diff...");
+
+    fetchBaseBranch(repoPath, baseBranch);
+
+    return execute(
+        `git diff ${baseBranch}...HEAD`,
+        repoPath
+    );
 }
