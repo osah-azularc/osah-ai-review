@@ -88,16 +88,21 @@ export function getGitDiff(
 }
 
 export function getReviewContext(repoPath) {
-
-   return {
+const reviewContext = {
 
     repository,
+
+    owner,
+
+    repo,
+
+    author,
 
     branch,
 
     baseBranch,
 
-    author,
+    prNumber,
 
     changedFiles,
 
@@ -109,7 +114,22 @@ export function getReviewContext(repoPath) {
 
     deletions,
 
-    totalFiles
+    totalFiles,
+
+    npmAudit,
+
+    eslint,
+
+    duplicateCode,
+
+    largeFiles,
+
+    hardcodedSql,
+
+    consoleLogs,
+
+    disabledEslint
 
 };
+   return reviewContext;
 }
