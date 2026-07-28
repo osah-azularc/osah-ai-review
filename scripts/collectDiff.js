@@ -89,26 +89,27 @@ export function getGitDiff(
 
 export function getReviewContext(repoPath) {
 
-    return {
+   return {
 
-        changedFiles,
+    repository,
 
-        gitDiff,
+    branch,
 
-        addedLines,
+    baseBranch,
 
-        deletedLines,
+    author,
 
-        commitMessages,
+    changedFiles,
 
-        author,
+    gitDiff,
 
-        branch,
+    commitMessages,
 
-        baseBranch,
+    insertions,
 
-        totalFiles
+    deletions,
 
-    };
+    totalFiles
 
+};
 }
