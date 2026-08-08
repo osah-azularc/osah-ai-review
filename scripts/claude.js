@@ -8,7 +8,7 @@ export async function reviewWithClaude(prompt) {
   try {
     const response = await anthropic.messages.create({
       model: process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514",
-      max_tokens: 8000,
+      max_tokens: 4000,
       temperature: 0,
       messages: [
         {
