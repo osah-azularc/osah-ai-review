@@ -2,6 +2,9 @@ name: OSAH AI PR Review
 
 on:
   workflow_call:
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
 
 permissions:
   contents: read
@@ -10,24 +13,15 @@ permissions:
 
 jobs:
   ai-review:
-
     runs-on: ubuntu-latest
 
     steps:
-
-      #########################################################
-      # Checkout the repository that triggered the workflow
-      #########################################################
 
       - name: Checkout Target Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           path: target
-
-      #########################################################
-      # Checkout AI Review Repository
-      #########################################################
 
       - name: Checkout AI Review Repository
         uses: actions/checkout@v4
@@ -36,40 +30,20 @@ jobs:
           token: ${{ github.token }}
           path: ai-review
 
-      #########################################################
-      # Setup Node
-      #########################################################
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      #########################################################
-      # Install Claude Code
-      #########################################################
-
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
-
-      #########################################################
-      # Verify Claude Code
-      #########################################################
 
       - name: Verify Claude Code
         run: claude --version
 
-      #########################################################
-      # Install AI Review dependencies
-      #########################################################
-
       - name: Install AI Review Dependencies
         working-directory: ai-review
         run: npm install
-
-      #########################################################
-      # Run AI Review
-      #########################################################
 
       - name: Run AI Review
         working-directory: ai-review
@@ -78,6 +52,8 @@ jobs:
           TARGET_REPO: ../target
           GITHUB_TOKEN: ${{ github.token }}
 
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_BASE: ${{ github.event.pull_request.base.ref }}
@@ -85,4 +61,3 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
 
           CLAUDE_MODEL: sonnet
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
