@@ -129,7 +129,10 @@ ${reviewContext.gitDiff}
     // Save Prompt
     //---------------------------------------------------
 
-    fs.writeFileSync("claude-input.md", finalPrompt);
+    fs.writeFileSync(
+        path.join(process.cwd(), "claude-input.md"),
+        finalPrompt
+    );
 
     console.log("✅ claude-input.md generated.");
 
@@ -143,7 +146,10 @@ ${reviewContext.gitDiff}
 
     console.log("✅ Claude Review Complete.");
 
-    fs.writeFileSync("review-output.md", markdownReview);
+    fs.writeFileSync(
+        path.join(process.cwd(), "review-output.md"),
+        markdownReview
+    );
 
     //---------------------------------------------------
     // GitHub Context
