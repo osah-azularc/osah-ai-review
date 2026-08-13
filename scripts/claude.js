@@ -1,26 +1,56 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { execFile } from "child_process";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+function runClaude(prompt) {
+    return new Promise((resolve, reject) => {
+        const child = execFile(
+            "claude",
+            [
+                "-p",
+                "--output-format",
+                "text",
+                "--model",
+                process.env.CLAUDE_MODEL || "sonnet",
+                "--max-turns",
+                "1",
+            ],
+            {
+                maxBuffer: 20 * 1024 * 1024,
+                cwd: process.env.TARGET_REPO || process.cwd(),
+            },
+            (error, stdout, stderr) => {
+                if (error) {
+                    console.error("Claude Code failed:");
+
+                    if (stderr) {
+                        console.error(stderr);
+                    }
+
+                    reject(error);
+                    return;
+                }
+
+                resolve(stdout.trim());
+            }
+        );
+
+        child.stdin.write(prompt);
+        child.stdin.end();
+    });
+}
 
 export async function reviewWithClaude(prompt) {
-  try {
-    const response = await anthropic.messages.create({
-      model: process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514",
-      max_tokens: 4000,
-      temperature: 0,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    });
+    try {
+        console.log("🤖 Running Claude Code with subscription authentication...");
 
-    return response.content?.[0]?.text || "";
-  } catch (error) {
-    console.error("Claude API review failed:", error.message);
-    throw error;
-  }
+        const result = await runClaude(prompt);
+
+        if (!result) {
+            throw new Error("Claude returned an empty response.");
+        }
+
+        return result;
+    } catch (error) {
+        console.error("Claude Code review failed:", error.message);
+        throw error;
+    }
 }
