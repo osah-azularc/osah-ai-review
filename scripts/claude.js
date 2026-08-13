@@ -1,79 +1,87 @@
 import { spawn } from "child_process";
 
-export async function reviewWithClaude(prompt) {
+/**
+ * Runs Claude Code using the Claude subscription OAuth token.
+ *
+ * The review prompt is passed through stdin.
+ */
+export function reviewWithClaude(prompt) {
     return new Promise((resolve, reject) => {
 
-        console.log("🤖 Running Claude Code with subscription authentication...");
-
-        if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) {
-            return reject(
-                new Error("CLAUDE_CODE_OAUTH_TOKEN is not available")
-            );
-        }
+        console.log("🤖 Starting Claude Code...");
 
         const args = [
             "-p",
-            prompt,
             "--output-format",
             "text",
             "--model",
-            process.env.CLAUDE_MODEL || "sonnet",
+            "sonnet",
             "--no-session-persistence",
+            "--bare",
             "--max-turns",
-            "3",
+            "20"
         ];
 
-        console.log(
-            `🤖 Running: claude -p --output-format text --model ${
-                process.env.CLAUDE_MODEL || "sonnet"
-            } --no-session-persistence --max-turns 3`
-        );
+        console.log(`Running: claude ${args.join(" ")}`);
 
-        const child = spawn("claude", args, {
+        const claude = spawn("claude", args, {
             env: {
                 ...process.env,
-                CLAUDE_CODE_OAUTH_TOKEN:
-                    process.env.CLAUDE_CODE_OAUTH_TOKEN,
             },
-            cwd: process.env.TARGET_REPO || process.cwd(),
-            shell: false,
+            stdio: ["pipe", "pipe", "pipe"],
         });
 
         let stdout = "";
         let stderr = "";
 
-        child.stdout.on("data", (data) => {
+        claude.stdout.on("data", (data) => {
             stdout += data.toString();
         });
 
-        child.stderr.on("data", (data) => {
+        claude.stderr.on("data", (data) => {
             stderr += data.toString();
         });
 
-        child.on("error", (error) => {
-            reject(error);
+        claude.on("error", (error) => {
+            reject(
+                new Error(
+                    `Failed to start Claude Code: ${error.message}`
+                )
+            );
         });
 
-        child.on("close", (code) => {
+        claude.on("close", (code) => {
 
             if (code !== 0) {
-                console.error(`❌ Claude Code exited with code: ${code}`);
-                console.error(`STDOUT: ${stdout}`);
-                console.error(`STDERR: ${stderr}`);
+
+                console.error("❌ Claude Code exited with code:", code);
+
+                if (stdout) {
+                    console.error("STDOUT:", stdout);
+                }
+
+                if (stderr) {
+                    console.error("STDERR:", stderr);
+                }
 
                 reject(
                     new Error(
                         `Claude Code exited with code ${code}. ` +
-                        `STDERR: ${stderr || "(empty)"}`
+                        `STDOUT: ${stdout} STDERR: ${stderr}`
                     )
                 );
 
                 return;
             }
 
-            console.log("✅ Claude Code review completed.");
+            console.log("✅ Claude Code completed.");
 
             resolve(stdout.trim());
         });
+
+        // IMPORTANT:
+        // Send the review prompt to Claude through stdin.
+        claude.stdin.write(prompt);
+        claude.stdin.end();
     });
 }
