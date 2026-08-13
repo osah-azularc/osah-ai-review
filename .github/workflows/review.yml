@@ -48,10 +48,19 @@ jobs:
       - name: Test Claude Authentication
         run: |
           echo "Testing Claude Code authentication..."
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "❌ CLAUDE_CODE_OAUTH_TOKEN is EMPTY"
+            exit 1
+          fi
+      
+          echo "✅ CLAUDE_CODE_OAUTH_TOKEN is present"
+          echo "Token length: ${#CLAUDE_CODE_OAUTH_TOKEN}"
           claude -p "Reply with exactly: CLAUDE_AUTH_OK" \
             --output-format text \
             --model sonnet \
             --max-turns 1
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
             
       - name: Install AI Review Dependencies
         working-directory: ai-review
