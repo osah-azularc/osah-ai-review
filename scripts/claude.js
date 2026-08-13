@@ -1,27 +1,42 @@
 import { spawn } from "child_process";
 
-function runClaude(prompt) {
+export async function reviewWithClaude(prompt) {
     return new Promise((resolve, reject) => {
+
+        console.log("🤖 Running Claude Code with subscription authentication...");
+
+        if (!process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+            return reject(
+                new Error("CLAUDE_CODE_OAUTH_TOKEN is not available")
+            );
+        }
+
         const args = [
             "-p",
+            prompt,
             "--output-format",
             "text",
             "--model",
             process.env.CLAUDE_MODEL || "sonnet",
             "--no-session-persistence",
-            "--bare",
             "--max-turns",
             "3",
         ];
 
-        console.log(`🤖 Running: claude ${args.join(" ")}`);
+        console.log(
+            `🤖 Running: claude -p --output-format text --model ${
+                process.env.CLAUDE_MODEL || "sonnet"
+            } --no-session-persistence --max-turns 3`
+        );
 
         const child = spawn("claude", args, {
-            cwd: process.env.TARGET_REPO || process.cwd(),
             env: {
                 ...process.env,
+                CLAUDE_CODE_OAUTH_TOKEN:
+                    process.env.CLAUDE_CODE_OAUTH_TOKEN,
             },
-            stdio: ["pipe", "pipe", "pipe"],
+            cwd: process.env.TARGET_REPO || process.cwd(),
+            shell: false,
         });
 
         let stdout = "";
@@ -36,26 +51,15 @@ function runClaude(prompt) {
         });
 
         child.on("error", (error) => {
-            reject(
-                new Error(
-                    `Failed to start Claude Code: ${error.message}`
-                )
-            );
+            reject(error);
         });
 
         child.on("close", (code) => {
+
             if (code !== 0) {
-                console.error("❌ Claude Code exited with code:", code);
-
-                console.error(
-                    "STDOUT:",
-                    stdout || "(empty)"
-                );
-
-                console.error(
-                    "STDERR:",
-                    stderr || "(empty)"
-                );
+                console.error(`❌ Claude Code exited with code: ${code}`);
+                console.error(`STDOUT: ${stdout}`);
+                console.error(`STDERR: ${stderr}`);
 
                 reject(
                     new Error(
@@ -67,42 +71,9 @@ function runClaude(prompt) {
                 return;
             }
 
-            if (!stdout.trim()) {
-                reject(
-                    new Error(
-                        "Claude Code completed successfully but returned empty output."
-                    )
-                );
-
-                return;
-            }
+            console.log("✅ Claude Code review completed.");
 
             resolve(stdout.trim());
         });
-
-        // Send the complete review prompt through stdin
-        child.stdin.write(prompt);
-        child.stdin.end();
     });
-}
-
-export async function reviewWithClaude(prompt) {
-    try {
-        console.log(
-            "🤖 Running Claude Code with subscription authentication..."
-        );
-
-        const result = await runClaude(prompt);
-
-        console.log("✅ Claude Code returned a review.");
-
-        return result;
-    } catch (error) {
-        console.error(
-            "❌ Claude Code review failed:",
-            error.message
-        );
-
-        throw error;
-    }
 }
