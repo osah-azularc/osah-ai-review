@@ -2,9 +2,6 @@ name: OSAH AI PR Review
 
 on:
   workflow_call:
-    secrets:
-      ANTHROPIC_API_KEY:
-        required: true
 
 permissions:
   contents: read
@@ -29,7 +26,7 @@ jobs:
           path: target
 
       #########################################################
-      # Checkout AI Review repository
+      # Checkout AI Review Repository
       #########################################################
 
       - name: Checkout AI Review Repository
@@ -40,13 +37,27 @@ jobs:
           path: ai-review
 
       #########################################################
-      # Node
+      # Setup Node
       #########################################################
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      #########################################################
+      # Install Claude Code
+      #########################################################
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      #########################################################
+      # Verify Claude Code
+      #########################################################
+
+      - name: Verify Claude Code
+        run: claude --version
 
       #########################################################
       # Install AI Review dependencies
@@ -57,7 +68,7 @@ jobs:
         run: npm install
 
       #########################################################
-      # Run Review
+      # Run AI Review
       #########################################################
 
       - name: Run AI Review
@@ -66,11 +77,11 @@ jobs:
         env:
           TARGET_REPO: ../target
           GITHUB_TOKEN: ${{ github.token }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_BASE: ${{ github.event.pull_request.base.ref }}
           PR_HEAD: ${{ github.event.pull_request.head.ref }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
 
-          
+          CLAUDE_MODEL: sonnet
