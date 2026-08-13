@@ -1,11 +1,6 @@
 import { spawn } from "child_process";
 
-/**
- * Runs Claude Code using the Claude subscription OAuth token.
- *
- * The review prompt is passed through stdin.
- */
-export function reviewWithClaude(prompt) {
+export async function reviewWithClaude(prompt) {
     return new Promise((resolve, reject) => {
 
         console.log("🤖 Starting Claude Code...");
@@ -17,71 +12,52 @@ export function reviewWithClaude(prompt) {
             "--model",
             "sonnet",
             "--no-session-persistence",
-            "--bare",
             "--max-turns",
             "20"
         ];
 
         console.log(`Running: claude ${args.join(" ")}`);
 
-        const claude = spawn("claude", args, {
+        const child = spawn("claude", args, {
             env: {
                 ...process.env,
+                CLAUDE_CODE_OAUTH_TOKEN:
+                    process.env.CLAUDE_CODE_OAUTH_TOKEN
             },
-            stdio: ["pipe", "pipe", "pipe"],
+            stdio: ["pipe", "pipe", "pipe"]
         });
 
         let stdout = "";
         let stderr = "";
 
-        claude.stdout.on("data", (data) => {
+        child.stdout.on("data", (data) => {
             stdout += data.toString();
         });
 
-        claude.stderr.on("data", (data) => {
+        child.stderr.on("data", (data) => {
             stderr += data.toString();
         });
 
-        claude.on("error", (error) => {
-            reject(
-                new Error(
-                    `Failed to start Claude Code: ${error.message}`
-                )
-            );
-        });
-
-        claude.on("close", (code) => {
+        child.on("close", (code) => {
 
             if (code !== 0) {
+                console.error(`❌ Claude Code exited with code ${code}`);
+                console.error("STDOUT:", stdout);
+                console.error("STDERR:", stderr);
 
-                console.error("❌ Claude Code exited with code:", code);
-
-                if (stdout) {
-                    console.error("STDOUT:", stdout);
-                }
-
-                if (stderr) {
-                    console.error("STDERR:", stderr);
-                }
-
-                reject(
+                return reject(
                     new Error(
-                        `Claude Code exited with code ${code}. ` +
-                        `STDOUT: ${stdout} STDERR: ${stderr}`
+                        `Claude Code exited with code ${code}. ${stdout || stderr}`
                     )
                 );
-
-                return;
             }
 
             console.log("✅ Claude Code completed.");
 
-            resolve(stdout.trim());
+            resolve(stdout);
         });
 
-        // IMPORTANT:
-        // Send the review prompt to Claude through stdin.
-        claude.stdin.write(prompt);
-        claude.stdin.end();
+        child.stdin.write(prompt);
+        child.stdin.end();
     });
 }
