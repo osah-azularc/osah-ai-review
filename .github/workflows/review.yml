@@ -40,7 +40,19 @@ jobs:
 
       - name: Verify Claude Code
         run: claude --version
+        
+      #########################################################
+      # Test Claude Authentication
+      #########################################################
 
+      - name: Test Claude Authentication
+        run: |
+          echo "Testing Claude Code authentication..."
+          claude -p "Reply with exactly: CLAUDE_AUTH_OK" \
+            --output-format text \
+            --model sonnet \
+            --max-turns 1
+            
       - name: Install AI Review Dependencies
         working-directory: ai-review
         run: npm install
